@@ -406,7 +406,7 @@ function computeWeeklyRanks() {
   // Creating sheets.
   // Event summaries, scores acquired in each event.
   var eventSummaryHeaders = ["Name", "mongoId"].concat(events.map(function(event) {
-    return "Event " + event.id + " (" + event.getFormattedDate() + ")";
+    return "Event " + event.id + "\n(" + event.getFormattedDate() + ")";
   }));
   
   var eventSummaryFormat = function(sheet) {
@@ -414,12 +414,19 @@ function computeWeeklyRanks() {
     var headers = sheet.getRange("1:1");
     var players = sheet.getRange("A2:A");
     
+    // Show columns before hiding columns.
+    sheet.showColumns(1, sheet.getLastColumn());
     sheet.hideColumn(idCol);
+    sheet.setFrozenRows(1);
+    sheet.setFrozenColumns(1);
+    sheet.setRowHeight(headers.getRow(), 50)
     headers.setFontWeight("bold");
     headers.setHorizontalAlignment("center");
     players.setHorizontalAlignment("center");
     players.setFontWeight("bold");
-    DataSheet._autoResize(sheet, 15);
+    DataSheet._autoResize(sheet, 5);
+    headers.setBackground("#ffe599");
+    sheet.getRange("A1").setBackground("#f9cb9c"); // Player name column header.
     
   }
   
@@ -457,7 +464,16 @@ function computeWeeklyRanks() {
 
   
   // Top ten list week to week.
-  var eventTopTenSheet = new DataSheet("Weekly Rankings (Top Ten)", eventSummaryHeaders.slice(2));
+  var eventTopTenFormat = function(sheet) {
+    var headers = sheet.getRange("1:1");
+    DataSheet._autoResize(sheet, 5);
+    headers.setBackground("#ffe599");
+    sheet.setRowHeight(headers.getRow(), 50)
+    headers.setFontWeight("bold");
+    headers.setHorizontalAlignment("center");
+  }
+  
+  var eventTopTenSheet = new DataSheet("Weekly Rankings (Top Ten)", eventSummaryHeaders.slice(2), eventTopTenFormat);
   var eventTopTenData = events.map(function(event) {
     var players = event.getPlayersByEvent().slice(0, 10).map(function(player) {
       return player.name + " (" + player.getEventScore(event.id) + ")";
@@ -515,6 +531,7 @@ function computeWeeklyRanks() {
     
     sheet.getRange("I1").setNote("Number of games played.");
     sheet.getRange("J1").setNote("Points per game.");
+    sheet.showColumns(1, sheet.getLastColumn());
     sheet.hideColumns(stdId.getColumn());
     sheet.setFrozenRows(stdHeader.getRow());
     sheet.setRowHeight(stdHeader.getRow(), 50);
