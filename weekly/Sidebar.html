@@ -1,0 +1,18 @@
+<?!= include('Stylesheet'); ?>
+
+<div class="sidebar">
+  <p>Select the results file you want to add information from</p>
+  <div id="file-handler-box">
+    <div class="file-field">
+      <span id="file-handler-display">No file selected</span>
+      <input type="file" class="hidden-file" name="file-upload" id="file-upload">
+      <button class="btn btn-default" id="file-handler-button">Browse...</button>
+    </div>
+  </div>
+  <button id="upload">Upload and Recalculate</button>
+  <div id="message">
+    <span id="messageText"></span>
+  </div>
+</div>
+
+<?!= include('JavaScript'); ?>

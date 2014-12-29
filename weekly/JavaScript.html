@@ -1,0 +1,162 @@
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+<script>
+/*
+ * This function takes an input identifier corresponding to a file
+ * input and a label corresponding to the element meant to display
+ * the selected file and updates the latter with the value of the
+ * former, or "No file selected." if no file has been selected.
+ */
+window.updateSelectedFilePath = function(input, label) {
+  var path = $(input).val();
+  if (path === "") {
+    $(label).text("No file selected.");
+  } else {
+    var fileName = path.replace(/.*(\/|\\)/, '');
+    $(label).text(fileName);
+  }
+}
+
+$('#file-upload').change(function() {
+  window.updateSelectedFilePath(this, '#file-handler-display');
+});
+
+// Update span initially in case file already selected.
+window.updateSelectedFilePath('#file-upload', '#file-handler-display');
+
+// Set up drag and drop.
+// Makes the element identified by targetElt able to handle files dragged
+// and dropped onto it, setting them as the value of the file selected by
+// fileElt.
+window.fileDragAndDrop = function(targetElt, fileElt) {
+  var target = $(targetElt);
+  target.on('dragenter', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+  });
+
+  target.on('dragover', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+  });
+
+  target.on('drop', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    e.dataTransfer = e.originalEvent.dataTransfer;
+
+    var dt = e.dataTransfer;
+    var files = dt.files;
+    $(fileElt).get(0).files = files;
+  });
+}
+
+window.fileDragAndDrop('#file-handler-box', '#file-upload');
+
+/**
+ * Execute match determination and copy values.
+ */
+window.testExecute = function() {
+  console.log("testExecute"); // DEBUG
+  // Call background function, catching any potential errors and displaying relevant messages.
+  // Optionally hide the sidebar.
+  var raceFiles = [];
+  
+  
+  // Get (list?) of files from file selection, create objects with file name and data.
+  
+  var files = $('#file-upload')[0].files;
+  if (files && files[0]) {
+    console.log("Files found."); // DEBUG
+    var file = files[0];
+    var fileObj = {};
+    fileObj.name = file.name;
+    var reader = new FileReader();
+    reader.onload = function(progress) {
+      //console.log(progress.target.result); // DEBUG
+      fileObj.content = progress.target.result;
+      raceFiles.push(fileObj);
+      google.script.run
+        .withSuccessHandler(function() {
+          showConfirmation("Added! Recalculating...", 2);
+          //console.log("Updated! Recalculating..."); // DEBUG
+          google.script.run
+            .withSuccessHandler(function() {
+              showConfirmation("Recalculated!");
+              //console.log("Recalculated!"); // DEBUG
+              //google.script.host.close();
+              // Clear file field and update path.
+              $('#file-upload').val('');
+              window.updateSelectedFilePath('#file-upload', '#file-handler-display');
+            })
+            .withFailureHandler(function() {
+              showError("Error recalculating.");
+            })
+            .calculateRaces();
+        })
+        .withFailureHandler(function() {
+          showError("Error adding sheet.");
+        })
+        .addRounds(raceFiles);
+    }
+    reader.onerror = function(result) {
+      //console.log("Error reading file."); // DEBUG
+      showError("Error reading file!");
+    }
+    reader.readAsText(file);
+  } else {
+    showError("No file selected!", 2);
+    //console.log("No files"); // DEBUG
+  }
+}; // end testexecute
+
+
+/**
+ * On document load, assign click handlers to each button and try to load the
+ * user's origin and destination language preferences if previously set.
+ */
+$(function() {
+  // Add listeners to buttons
+  $('#upload').click(window.testExecute);
+  // Connect Browse... button to file field.
+  $('#file-handler-button').click(function(e) {
+    $('#file-upload').click();
+  });
+});
+
+/**
+ * Show given error message for period specified by timeout (in seconds). Default is 5.
+ * @param {string} msg The message to show.
+ * @param {number} timeout The length of time, in seconds, to show the message.
+ */
+function showError(msg, timeout) {
+  if (typeof timeout == "undefined") timeout = 5;
+  // Set container class.
+  $("#message").addClass("error");
+  $("#messageText").text(msg);
+  $("#message").fadeIn();
+  setTimeout(function() {
+    $("#message").fadeOut();
+    $("#messageText").text("");
+    $("#message").removeClass("error");
+  }, timeout * 1000);
+}
+
+/**
+ * Show given error message for period specified by timeout (in seconds). Default is 5.
+ * @param {string} msg The message to show.
+ * @param {number} timeout The length of time, in seconds, to show the message.
+ */
+function showConfirmation(msg, timeout) {
+  if (typeof timeout == "undefined") timeout = 5;
+  // Set container class.
+  $("#message").addClass("success");
+  $("#messageText").text(msg);
+  $("#message").fadeIn(250);
+  setTimeout(function() {
+    $("#message").fadeOut(250);
+    $("#messageText").text("");
+    $("#message").removeClass("success");
+  }, timeout * 1000);
+}
+</script>
