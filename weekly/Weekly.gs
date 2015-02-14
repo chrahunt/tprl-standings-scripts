@@ -37,7 +37,7 @@ function include(filename) {
  *  * laps: An array with the lap times for each lap. If a player did not complete a lap, an empty string
  *      will be present in the array at the index corresponding to the lap.
  * This function does no error checking, and may break if the userscript output changes. This function
- * does properly handle cases where player's have a comma in their name.
+ * does properly handle cases where players have a comma in their name.
  *
  * @param {string} csvString  The string read in from the userscript file.
  * @param {boolean} objects  Whether or not to return an array of objects.
@@ -80,7 +80,8 @@ function parseCSV(csvString, objects) {
       var rowData = [];
       var match = row.match(re);
       rowData.push(match[1]); // mongoId
-      rowData.push(match[2]); // name
+      rowData.push(match[2]); // player name
+      
       for (var i = 0; i < laps; i++) {
         rowData.push(match[i + 3]);
       }
@@ -159,6 +160,17 @@ function autoResize(sheet, buffer) {
 }
 
 /**
+ * Escape text with leading equal sign for insertion into sheet.
+ */
+function escapeText(str) {
+  if (str.length > 0 && str[0] == "=") {
+    return "'" + str;
+  } else {
+    return str;
+  }
+}
+
+/**
  * Takes in a file output from Lap Timer userscript and adds a sheet with the information to the spreadsheet and an
  * entry into the "Rounds" sheet. Currently only supports addition of a single file.
  * @param {Array} files An array of objects with properties:
@@ -174,7 +186,7 @@ function addRounds(files) {
   var eventData = parseCSV(content);
   
   // Extract the time and the name/author of the map played.
-  var fileNameRe = /tagproracing-(\d+)-(\w+)\.csv$/;
+  var fileNameRe = /tagproracing-(\d+)-(.+)\.csv$/;
   var nameMatch = name.match(fileNameRe);
   var time = nameMatch[1];
   var mapName = nameMatch[2];
@@ -183,7 +195,6 @@ function addRounds(files) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();  
   
   // Get or create Rounds sheet.
-  
   var roundSheet = ss.getSheetByName("Rounds");
   if (!roundSheet) {
     var roundValues = [["Sheet Name", "Number"]];
@@ -195,6 +206,14 @@ function addRounds(files) {
   }
   
   var sheetName = "R" + (lastRow + 1) + ": " + mapName;
+  
+  // Escape player names.
+  eventData.forEach(function(row, i) {
+    if (i !== 0) {
+      row[1] = escapeText(row[1]);
+    }
+  });
+  
   // Create sheet for event data.
   createAndPopulateSheet(sheetName, eventData);  
   
@@ -274,7 +293,9 @@ function calculateRaces() {
   
   // Write player information rows to output array.
   players.forEach(function(player) {
-    var playerRow = [player.name, player.id, player.total];
+    // Escape player name text.
+    var name = escapeText(player.name);
+    var playerRow = [name, player.id, player.total];
     
     rounds.forEach(function(round) {
       if (player.scores.hasOwnProperty(round.name)) {

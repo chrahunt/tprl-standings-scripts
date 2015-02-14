@@ -24,6 +24,33 @@ Player.prototype.setName = function(name) {
 }
 
 /**
+ * Get name for player.
+ * @param {boolean} [escape=true] Whether to escape the name for sheet output.
+ * @return {string} name
+ */
+Player.prototype.getName = function(escape) {
+  if (typeof escape == 'undefined') escape = true;
+  if (escape) {
+    return this._escapeText(this.name);
+  } else {
+    return this.name;
+  }
+}
+
+/**
+ * Escape text with leading equal sign for insertion into sheet.
+ * @param {string} str The text to escape.
+ * @return {string} The escaped text.
+ */
+Player.prototype._escapeText = function(str) {
+  if (str.length > 0 && str[0] == "=") {
+    return "'" + str;
+  } else {
+    return str;
+  }
+}
+
+/**
  * Add a score for a given event id. Event scores must be added in order
  * of occurrence. Event ids must be unique.
  * @param {varies} eventId The unique identifier for the event.
@@ -294,7 +321,6 @@ DataSheet._autoResize = function(sheet, buffer) {
   }
   
   headerRange.setValues([oldHeaders]);
-  
 }
 
 /**
@@ -433,7 +459,7 @@ function computeWeeklyRanks() {
   var eventSummarySheet = new DataSheet("Event Summaries", eventSummaryHeaders, eventSummaryFormat);
 
   var eventSummaryData = players.map(function(player) {
-    return [player.name, player.id].concat(events.map(function(event) {
+    return [player.getName(), player.id].concat(events.map(function(event) {
       var score = player.getEventScore(event.id);
       if (score) {
         return score;
@@ -450,7 +476,7 @@ function computeWeeklyRanks() {
   var cumulativeEventSummarySheet = new DataSheet("Event Summaries (cumulative)", eventSummaryHeaders, eventSummaryFormat);
   
   var cumulativeEventSummaryData = players.map(function(player) {
-    return [player.name, player.id].concat(events.map(function(event) {
+    return [player.getName(), player.id].concat(events.map(function(event) {
       var score = player.getCumulativeScore(event.id)
       if (score) {
         return score;
@@ -476,7 +502,7 @@ function computeWeeklyRanks() {
   var eventTopTenSheet = new DataSheet("Weekly Rankings (Top Ten)", eventSummaryHeaders.slice(2), eventTopTenFormat);
   var eventTopTenData = events.map(function(event) {
     var players = event.getPlayersByEvent().slice(0, 10).map(function(player) {
-      return player.name + " (" + player.getEventScore(event.id) + ")";
+      return player.getName() + " (" + player.getEventScore(event.id) + ")";
     });
     // Handle cases where there were less than 10 players.
     if (players.length < 10) {
@@ -500,8 +526,8 @@ function computeWeeklyRanks() {
     "Points",
     "Streak\nW=Top 1/2\nLow=Bottom 1/2",
     "Best Rank",
-    "Played",
-    "PPG",
+    "Weeks\nPlayed",
+    "Points\nPer\nWeek",
     "Ranks Below\nBest Rank"
   ];
   
@@ -529,8 +555,6 @@ function computeWeeklyRanks() {
     bestRankFormattingRange.copyFormatToRange(sheet, stdBestRanks.getColumn(), stdBestRanks.getLastColumn(), stdBestRanks.getRow(), stdBestRanks.getLastRow());
     streakFormattingRange.copyFormatToRange(sheet, stdStreak.getColumn(), stdStreak.getLastColumn(), stdStreak.getRow(), stdStreak.getLastRow());
     
-    sheet.getRange("I1").setNote("Number of games played.");
-    sheet.getRange("J1").setNote("Points per game.");
     sheet.showColumns(1, sheet.getLastColumn());
     sheet.hideColumns(stdId.getColumn());
     sheet.setFrozenRows(stdHeader.getRow());
@@ -598,7 +622,7 @@ function computeWeeklyRanks() {
       currentRank,
       lastEvent && previousRank ? previousRank : "",
       lastEvent && previousRank ? previousRankDiff : "",
-      player.name,
+      player.getName(),
       player.id,
       player.getCumulativeScore(currentEvent.id),
       player.getStreak(),
@@ -687,7 +711,7 @@ function computeWeeklyRanks() {
   var champStatsData = championPlayers.map(function(champion) {
     var formattedDate = (champion.date.getMonth() + 1) + "/" + champion.date.getDate() + "/" + champion.date.getYear();
     return [
-      champion.player.name,
+      champion.player.getName(),
       champion.date,
       champion.current ? "Current" : "Past",
       champion.currentReign,
